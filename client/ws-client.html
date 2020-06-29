@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="Chart.min.css" />
+    <title>IDS-DDoS</title>
+  </head>
+  <body class="bg-warning py-5">
+      <div class="col-md-6 offset-md-3">
+          <div class="card">
+            <div class="card-body">
+                <h1>IDS-DDoS Monitor Interface</h1>
+            </div>
+            <div class="card-body">
+                <canvas id="myChart"></canvas> 
+            </div>
+            <div class="card-body">
+                <h2>Block history</h2>
+                <table class="table" id="block-table">
+                    <thead>
+                    <tr class="d-flex">
+                        <th>Timestamp</th>
+                        <th>Flow</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+          </div>
+      </div>
+    
+
+    <script src="Chart.min.js"></script>
+    <script>
+        var start_time = 0
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Received pkt',
+                    borderColor: 'rgb(0, 0, 255)',
+                    data: []
+                },
+                {
+                    label: 'Transferred pkt',
+                    borderColor: 'rgb(0, 255, 0)',
+                    data: []
+                }]
+            },
+
+            // Configuration options go here
+            options: {}
+        });
+        function add_to_chart(data){
+            chart.data.labels.push(Math.round(Date.now() / 1000) - start_time)
+            chart.data.datasets[0].data.push(data['rx'])
+            chart.data.datasets[1].data.push(data['tx'])
+            chart.update()
+        }
+        function add_to_table(data){
+            var tableRef = document.getElementById('block-table').getElementsByTagName('tbody')[0];
+
+            var newRow = tableRef.insertRow(tableRef.rows.length);
+            newRow.innerHTML = '<tr class="d-flex"><td>' + Date() + '</td><td>' + data['data'] + '</td></tr>';
+        }
+        var ws = new WebSocket("ws://127.0.0.1:8080/monitor/ws")
+        ws.onopen =  function(e){
+            start_time = Math.round(Date.now() / 1000)
+        }
+        ws.onmessage = function(event) {
+            let data = JSON.parse(event.data)
+            if (data['type'] == 'monitor')
+                add_to_chart(data)
+            else 
+                add_to_table(data)
+            
+        }
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="jquery-3.5.1.slim.min.js"></script>
+    <script src="popper.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+  </body>
+</html>
